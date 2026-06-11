@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เกมทายชื่อผลไม้ด้วยท่าทาง 🍎👋</title>
+    <title>เกมทายคำศัพท์ด้วยท่าทาง 🍎🐶</title>
     
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -31,13 +31,13 @@
             -webkit-transform: scaleX(-1);
         }
 
-        .fruit-emoji {
+        .item-emoji {
             font-size: 10rem;
             filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2));
             transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         
-        .fruit-pop {
+        .item-pop {
             animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
 
@@ -70,7 +70,6 @@
 </head>
 <body class="h-screen w-screen relative">
 
-    
     <!-- Camera Video (Hidden, used as source for AI) -->
     <video id="videoElement" class="hidden" autoplay playsinline></video>
     
@@ -83,47 +82,67 @@
     <!-- UI Layer -->
     <div class="absolute inset-0 z-10 flex flex-col justify-between p-4 pointer-events-none">
         
-        <!-- Header: Score and Status -->
-        <div class="flex justify-between items-start w-full max-w-6xl mx-auto mt-4">
-            <div class="glass-panel rounded-3xl px-6 py-3 flex items-center gap-3 pointer-events-auto">
+        <!-- Top: Options (Left and Right) moved here for high reach -->
+        <div id="optionsContainer" class="hidden flex justify-between items-start w-full max-w-7xl mx-auto mt-4 pointer-events-none">
+            
+            <!-- Left Option -->
+            <div id="leftOptionUI" class="hit-zone glass-panel w-1/3 max-w-sm rounded-3xl p-6 text-center border-b-8 border-b-orange-500 relative overflow-hidden pointer-events-auto">
+                <div class="absolute bottom-0 left-0 w-full h-2 bg-orange-500"></div>
+                <p class="text-xl text-gray-500 font-semibold mb-2">ยกมือแตะฝั่งซ้าย</p>
+                <p id="leftText" class="text-5xl font-black text-gray-800 break-words">Apple</p>
+                <div class="mt-4 text-orange-500 text-opacity-50 text-6xl font-black absolute -right-4 top-4">L</div>
+            </div>
+
+            <!-- Header: Score (Moved to center top when options are shown) -->
+            <div id="scoreContainer" class="hidden glass-panel rounded-3xl px-6 py-3 items-center gap-3 pointer-events-auto">
                 <span class="text-4xl">🌟</span>
                 <div class="text-2xl font-bold text-gray-800">คะแนน: <span id="scoreDisplay" class="text-green-600 text-3xl">0</span></div>
             </div>
-            
-            <button id="startButton" class="bg-blue-500 hover:bg-blue-600 text-white font-bold text-2xl py-4 px-8 rounded-full shadow-xl transition-transform hover:scale-105 pointer-events-auto border-4 border-white">
-                ▶️ เริ่มเล่นเกม
-            </button>
-        </div>
-
-        <!-- Center: Current Fruit -->
-        <div id="gameCenter" class="hidden flex-col items-center justify-center flex-grow pointer-events-none">
-            <div class="glass-panel rounded-[3rem] p-8 flex flex-col items-center justify-center min-w-[300px]">
-                <h2 class="text-2xl font-bold text-gray-500 mb-2">ผลไม้นี้คืออะไร?</h2>
-                <div id="fruitDisplay" class="fruit-emoji">🍎</div>
-                <div id="feedbackText" class="text-4xl font-extrabold mt-4 h-12 opacity-0 transition-opacity">ยอดเยี่ยม!</div>
-            </div>
-        </div>
-
-        <!-- Bottom/Sides: Options (Left and Right) -->
-        <div id="optionsContainer" class="hidden flex justify-between items-end w-full max-w-7xl mx-auto mb-10 pointer-events-none">
-            
-            <!-- Left Option -->
-            <div id="leftOptionUI" class="hit-zone glass-panel w-1/3 max-w-sm rounded-3xl p-6 text-center border-l-8 border-l-orange-500 relative overflow-hidden">
-                <div class="absolute top-0 left-0 w-full h-2 bg-orange-500"></div>
-                <p class="text-xl text-gray-500 font-semibold mb-2">แตะมือฝั่งซ้าย</p>
-                <p id="leftText" class="text-5xl font-black text-gray-800 break-words">Apple</p>
-                <div class="mt-4 text-orange-500 text-opacity-50 text-6xl font-black absolute -right-4 -bottom-4">L</div>
-            </div>
 
             <!-- Right Option -->
-            <div id="rightOptionUI" class="hit-zone glass-panel w-1/3 max-w-sm rounded-3xl p-6 text-center border-r-8 border-r-purple-500 relative overflow-hidden">
-                <div class="absolute top-0 right-0 w-full h-2 bg-purple-500"></div>
-                <p class="text-xl text-gray-500 font-semibold mb-2">แตะมือฝั่งขวา</p>
+            <div id="rightOptionUI" class="hit-zone glass-panel w-1/3 max-w-sm rounded-3xl p-6 text-center border-b-8 border-b-purple-500 relative overflow-hidden pointer-events-auto">
+                <div class="absolute bottom-0 right-0 w-full h-2 bg-purple-500"></div>
+                <p class="text-xl text-gray-500 font-semibold mb-2">ยกมือแตะฝั่งขวา</p>
                 <p id="rightText" class="text-5xl font-black text-gray-800 break-words">Banana</p>
-                <div class="mt-4 text-purple-500 text-opacity-50 text-6xl font-black absolute -left-4 -bottom-4">R</div>
+                <div class="mt-4 text-purple-500 text-opacity-50 text-6xl font-black absolute -left-4 top-4">R</div>
             </div>
 
         </div>
+
+        <!-- Center: Main Menu & Game Area -->
+        <div class="flex-grow flex flex-col items-center justify-center pointer-events-none">
+            
+            <!-- Mode Selection Menu -->
+            <div id="mainMenu" class="glass-panel rounded-[3rem] p-10 flex flex-col items-center justify-center pointer-events-auto">
+                <h1 class="text-5xl font-black text-gray-800 mb-8 text-center">เกมทายคำศัพท์<br><span class="text-blue-500 text-3xl">ด้วยท่าทาง</span></h1>
+                <p class="text-2xl text-gray-600 mb-6">เลือกหมวดหมู่ที่ต้องการเล่น</p>
+                
+                <div class="flex gap-6">
+                    <button id="btnFruitsMode" class="bg-red-500 hover:bg-red-600 text-white font-bold text-3xl py-6 px-10 rounded-[2rem] shadow-xl transition-transform hover:scale-105 border-4 border-white flex flex-col items-center">
+                        <span class="text-6xl mb-2">🍎</span>
+                        หมวดผลไม้
+                    </button>
+                    
+                    <button id="btnAnimalsMode" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold text-3xl py-6 px-10 rounded-[2rem] shadow-xl transition-transform hover:scale-105 border-4 border-white flex flex-col items-center">
+                        <span class="text-6xl mb-2">🐶</span>
+                        หมวดสัตว์
+                    </button>
+                </div>
+            </div>
+
+            <!-- Current Item Display -->
+            <div id="gameCenter" class="hidden flex-col items-center justify-center">
+                <div class="glass-panel rounded-[3rem] p-8 flex flex-col items-center justify-center min-w-[300px]">
+                    <h2 class="text-3xl font-bold text-gray-500 mb-2">รูปนี้คืออะไร?</h2>
+                    <div id="itemDisplay" class="item-emoji">🍎</div>
+                    <div id="feedbackText" class="text-5xl font-extrabold mt-4 h-16 opacity-0 transition-opacity drop-shadow-md">ยอดเยี่ยม!</div>
+                </div>
+            </div>
+            
+        </div>
+        
+        <!-- Bottom padding for balance -->
+        <div class="h-10"></div>
     </div>
 
     <!-- Loading Screen Overlay -->
@@ -134,20 +153,32 @@
     </div>
 
     <script>
-        // Game Vocabulary Data
+        // Game Vocabulary Data - 20 Fruits
         const fruits = [
-            { name: "Apple", emoji: "🍎" },
-            { name: "Banana", emoji: "🍌" },
-            { name: "Orange", emoji: "🍊" },
-            { name: "Grape", emoji: "🍇" },
-            { name: "Strawberry", emoji: "🍓" },
-            { name: "Watermelon", emoji: "🍉" },
-            { name: "Mango", emoji: "🥭" },
-            { name: "Pineapple", emoji: "🍍" },
-            { name: "Cherry", emoji: "🍒" },
-            { name: "Peach", emoji: "🍑" },
-            { name: "Coconut", emoji: "🥥" },
-            { name: "Kiwi", emoji: "🥝" }
+            { name: "Apple", emoji: "🍎" }, { name: "Banana", emoji: "🍌" },
+            { name: "Orange", emoji: "🍊" }, { name: "Grape", emoji: "🍇" },
+            { name: "Strawberry", emoji: "🍓" }, { name: "Watermelon", emoji: "🍉" },
+            { name: "Mango", emoji: "🥭" }, { name: "Pineapple", emoji: "🍍" },
+            { name: "Cherry", emoji: "🍒" }, { name: "Peach", emoji: "🍑" },
+            { name: "Coconut", emoji: "🥥" }, { name: "Kiwi", emoji: "🥝" },
+            { name: "Lemon", emoji: "🍋" }, { name: "Melon", emoji: "🍈" },
+            { name: "Pear", emoji: "🍐" }, { name: "Papaya", emoji: "🥑" }, // Using avocado emoji as placeholder for some specific local fruits if needed, but let's stick to standard
+            { name: "Blueberry", emoji: "🫐" }, { name: "Avocado", emoji: "🥑" },
+            { name: "Tomato", emoji: "🍅" }, { name: "Green Apple", emoji: "🍏" }
+        ];
+
+        // Game Vocabulary Data - 20 Animals
+        const animals = [
+            { name: "Dog", emoji: "🐶" }, { name: "Cat", emoji: "🐱" },
+            { name: "Mouse", emoji: "🐭" }, { name: "Hamster", emoji: "🐹" },
+            { name: "Rabbit", emoji: "🐰" }, { name: "Fox", emoji: "🦊" },
+            { name: "Bear", emoji: "🐻" }, { name: "Panda", emoji: "🐼" },
+            { name: "Koala", emoji: "🐨" }, { name: "Tiger", emoji: "🐯" },
+            { name: "Lion", emoji: "🦁" }, { name: "Cow", emoji: "🐮" },
+            { name: "Pig", emoji: "🐷" }, { name: "Frog", emoji: "🐸" },
+            { name: "Monkey", emoji: "🐵" }, { name: "Chicken", emoji: "🐔" },
+            { name: "Penguin", emoji: "🐧" }, { name: "Bird", emoji: "🐦" },
+            { name: "Elephant", emoji: "🐘" }, { name: "Horse", emoji: "🐴" }
         ];
 
         // State Variables
@@ -155,23 +186,28 @@
         let isPlaying = false;
         let currentQuestion = null;
         let isProcessingAnswer = false;
+        let currentVocabulary = []; // Will hold either fruits or animals
         
         // DOM Elements
         const videoElement = document.getElementById('videoElement');
         const canvasElement = document.getElementById('outputCanvas');
         const canvasCtx = canvasElement.getContext('2d');
         
-        const startButton = document.getElementById('startButton');
         const loadingOverlay = document.getElementById('loading-overlay');
+        const mainMenu = document.getElementById('mainMenu');
         const gameCenter = document.getElementById('gameCenter');
         const optionsContainer = document.getElementById('optionsContainer');
-        const fruitDisplay = document.getElementById('fruitDisplay');
+        const scoreContainer = document.getElementById('scoreContainer');
+        const itemDisplay = document.getElementById('itemDisplay');
         const leftText = document.getElementById('leftText');
         const rightText = document.getElementById('rightText');
         const scoreDisplay = document.getElementById('scoreDisplay');
         const feedbackText = document.getElementById('feedbackText');
         const leftOptionUI = document.getElementById('leftOptionUI');
         const rightOptionUI = document.getElementById('rightOptionUI');
+
+        const btnFruitsMode = document.getElementById('btnFruitsMode');
+        const btnAnimalsMode = document.getElementById('btnAnimalsMode');
 
         // Audio synthesis for fun feedback
         let synth, errorSynth;
@@ -203,13 +239,44 @@
             errorSynth.triggerAttackRelease("C3", "4n");
         }
 
-
-        function startGame() {
+        function startCameraAndGame(mode) {
             initAudio(); // Required to start Tone.js after user gesture
-            startButton.style.display = 'none';
+            
+            // Set vocabulary based on selected mode
+            if(mode === 'fruits') {
+                currentVocabulary = fruits;
+            } else if (mode === 'animals') {
+                currentVocabulary = animals;
+            }
+
+            loadingOverlay.classList.remove('hidden');
+            mainMenu.classList.add('hidden');
+            
+            // Start Camera if not already started
+            if(!cameraStarted) {
+                 camera.start().then(() => {
+                    loadingOverlay.classList.add('hidden');
+                    cameraStarted = true;
+                    beginGameplay();
+                }).catch(err => {
+                    loadingOverlay.classList.add('hidden');
+                    mainMenu.classList.remove('hidden');
+                    alert("ไม่สามารถเข้าถึงกล้องได้ กรุณาอนุญาตการใช้งานกล้องในเบราว์เซอร์ของคุณ");
+                    console.error(err);
+                });
+            } else {
+                loadingOverlay.classList.add('hidden');
+                beginGameplay();
+            }
+        }
+
+        function beginGameplay() {
             gameCenter.classList.remove('hidden');
             gameCenter.classList.add('flex');
             optionsContainer.classList.remove('hidden');
+            optionsContainer.classList.add('flex');
+            scoreContainer.classList.remove('hidden');
+            scoreContainer.classList.add('flex');
             
             score = 0;
             updateScoreDisplay();
@@ -222,36 +289,40 @@
             
             // Reset UI
             feedbackText.style.opacity = '0';
-            fruitDisplay.classList.remove('fruit-pop');
-            leftOptionUI.classList.remove('bg-green-100', 'bg-red-100', 'border-green-500', 'border-red-500');
-            rightOptionUI.classList.remove('bg-green-100', 'bg-red-100', 'border-green-500', 'border-red-500');
+            itemDisplay.classList.remove('item-pop');
+            leftOptionUI.classList.remove('bg-green-100', 'bg-red-100', 'border-b-green-500', 'border-b-red-500', 'border-b-orange-500');
+            rightOptionUI.classList.remove('bg-green-100', 'bg-red-100', 'border-b-green-500', 'border-b-red-500', 'border-b-purple-500');
+            
+            leftOptionUI.classList.add('border-b-orange-500');
+            rightOptionUI.classList.add('border-b-purple-500');
+
             leftOptionUI.style.transform = 'scale(1)';
             rightOptionUI.style.transform = 'scale(1)';
 
-            // Pick a random fruit
-            const targetFruit = fruits[Math.floor(Math.random() * fruits.length)];
+            // Pick a random item from current vocabulary
+            const targetItem = currentVocabulary[Math.floor(Math.random() * currentVocabulary.length)];
             
-            // Pick a wrong fruit
-            let wrongFruit;
+            // Pick a wrong item
+            let wrongItem;
             do {
-                wrongFruit = fruits[Math.floor(Math.random() * fruits.length)];
-            } while (wrongFruit.name === targetFruit.name);
+                wrongItem = currentVocabulary[Math.floor(Math.random() * currentVocabulary.length)];
+            } while (wrongItem.name === targetItem.name);
 
             // Randomize position (Left or Right)
             const isTargetLeft = Math.random() > 0.5;
 
             currentQuestion = {
-                target: targetFruit,
-                leftOption: isTargetLeft ? targetFruit.name : wrongFruit.name,
-                rightOption: !isTargetLeft ? targetFruit.name : wrongFruit.name,
+                target: targetItem,
+                leftOption: isTargetLeft ? targetItem.name : wrongItem.name,
+                rightOption: !isTargetLeft ? targetItem.name : wrongItem.name,
                 correctSide: isTargetLeft ? 'left' : 'right'
             };
 
             // Update DOM
             // Force reflow to restart animation
-            void fruitDisplay.offsetWidth; 
-            fruitDisplay.innerText = targetFruit.emoji;
-            fruitDisplay.classList.add('fruit-pop');
+            void itemDisplay.offsetWidth; 
+            itemDisplay.innerText = targetItem.emoji;
+            itemDisplay.classList.add('item-pop');
             
             leftText.innerText = currentQuestion.leftOption;
             rightText.innerText = currentQuestion.rightOption;
@@ -271,29 +342,32 @@
                 score += 10;
                 updateScoreDisplay();
                 playSuccessSound();
-                selectedUI.classList.add('bg-green-100', 'border-green-500');
+                selectedUI.classList.remove('border-b-orange-500', 'border-b-purple-500');
+                selectedUI.classList.add('bg-green-100', 'border-b-green-500');
                 showFeedback("ถูกต้อง! 🎉", "text-green-500");
             } else {
                 // Wrong Answer
                 playErrorSound();
-                selectedUI.classList.add('bg-red-100', 'border-red-500');
+                selectedUI.classList.remove('border-b-orange-500', 'border-b-purple-500');
+                selectedUI.classList.add('bg-red-100', 'border-b-red-500');
                 
                 // Highlight the correct one too
                 const correctUI = currentQuestion.correctSide === 'left' ? leftOptionUI : rightOptionUI;
-                correctUI.classList.add('bg-green-100', 'border-green-500');
+                correctUI.classList.remove('border-b-orange-500', 'border-b-purple-500');
+                correctUI.classList.add('bg-green-100', 'border-b-green-500');
                 
                 showFeedback("ผิดจ้า! 😢", "text-red-500");
             }
 
-            // Wait 2 seconds before next question
+            // Wait 2.5 seconds before next question to allow student to lower hands
             setTimeout(() => {
                 nextQuestion();
-            }, 2000);
+            }, 2500);
         }
 
         function showFeedback(text, colorClass) {
             feedbackText.innerText = text;
-            feedbackText.className = `text-4xl font-extrabold mt-4 h-12 transition-opacity ${colorClass}`;
+            feedbackText.className = `text-5xl font-extrabold mt-4 h-16 transition-opacity drop-shadow-md ${colorClass}`;
             feedbackText.style.opacity = '1';
         }
 
@@ -311,9 +385,6 @@
             
             // Draw video feed on canvas
             canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
-
-            // Define hit zones visually on the canvas (optional, but helps debug)
-            const zoneWidth = canvasElement.width * 0.3; // 30% of screen
             
             // Draw Landmarks if found
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
@@ -323,31 +394,37 @@
 
                     // Check interaction with game UI if playing
                     if (isPlaying && !isProcessingAnswer) {
-                        // Use Index Finger Tip (Landmark 8) for pointing
-                        const indexFinger = landmarks[8];
+                        // Use Index Finger Tip (Landmark 8) or Wrist (0) to detect general hand position
+                        const referencePoint = landmarks[8]; // Index finger tip
                         
-                        // X coordinate is normalized [0.0, 1.0].
-                        // Note: Our canvas CSS has transform: scaleX(-1) which mirrors the display.
-                        // The raw camera frame (results.image) is NOT mirrored.
-                        // So: 
+                        // Coordinates are normalized [0.0, 1.0].
+                        // Y = 0.0 is top of screen.
+                        // Our options are now at the TOP. Let's say if Y < 0.4 (top 40% of screen)
+                        const rawY = referencePoint.y;
+                        const rawX = referencePoint.x;
+
+                        // Remember the mirror effect:
                         // Raw x = 1.0 (Right side of image) -> Appears on Left screen to user.
                         // Raw x = 0.0 (Left side of image) -> Appears on Right screen to user.
                         
-                        const rawX = indexFinger.x;
-                        
-                        // Add visual feedback to the HTML UI elements
-                        if (rawX > 0.75) {
-                            // Hand is on the raw-right (visual-left)
-                            leftOptionUI.classList.add('active');
-                            rightOptionUI.classList.remove('active');
-                            handleAnswer('left');
-                        } else if (rawX < 0.25) {
-                            // Hand is on the raw-left (visual-right)
-                            rightOptionUI.classList.add('active');
-                            leftOptionUI.classList.remove('active');
-                            handleAnswer('right');
+                        // Hand is raised high enough
+                        if (rawY < 0.4) {
+                            if (rawX > 0.6) {
+                                // Hand is on the raw-right (visual-left)
+                                leftOptionUI.classList.add('active');
+                                rightOptionUI.classList.remove('active');
+                                handleAnswer('left');
+                            } else if (rawX < 0.4) {
+                                // Hand is on the raw-left (visual-right)
+                                rightOptionUI.classList.add('active');
+                                leftOptionUI.classList.remove('active');
+                                handleAnswer('right');
+                            } else {
+                                leftOptionUI.classList.remove('active');
+                                rightOptionUI.classList.remove('active');
+                            }
                         } else {
-                            // Hand in the middle
+                            // Hand is lowered
                             leftOptionUI.classList.remove('active');
                             rightOptionUI.classList.remove('active');
                         }
@@ -377,6 +454,7 @@
         hands.onResults(onResults);
 
         // Setup Camera
+        let cameraStarted = false;
         const camera = new Camera(videoElement, {
             onFrame: async () => {
                 await hands.send({image: videoElement});
@@ -385,19 +463,9 @@
             height: 720
         });
 
-        startButton.addEventListener('click', () => {
-            loadingOverlay.classList.remove('hidden');
-            
-            // Request camera and start
-            camera.start().then(() => {
-                loadingOverlay.classList.add('hidden');
-                startGame();
-            }).catch(err => {
-                loadingOverlay.classList.add('hidden');
-                alert("ไม่สามารถเข้าถึงกล้องได้ กรุณาอนุญาตการใช้งานกล้องในเบราว์เซอร์ของคุณ");
-                console.error(err);
-            });
-        });
+        // Event Listeners for Mode Selection
+        btnFruitsMode.addEventListener('click', () => startCameraAndGame('fruits'));
+        btnAnimalsMode.addEventListener('click', () => startCameraAndGame('animals'));
 
         // Fix resize issues for canvas
         window.addEventListener('resize', () => {
