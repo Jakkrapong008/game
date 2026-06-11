@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เกมทายชื่อผลไม้ด้วยท่าทาง 🍎👋</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- MediaPipe for Hand Tracking -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <!-- Tone.js for Sound Effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js" crossorigin="anonymous"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+            margin: 0;
+            overflow: hidden; /* Prevent scrolling */
+            background-color: #f0fdf4; /* Light green background */
+        }
+        
+        /* Mirror the video and canvas so it acts like a mirror for the kids */
+        .mirrored {
+            transform: scaleX(-1);
+            -webkit-transform: scaleX(-1);
+        }
+
+        .fruit-emoji {
+            font-size: 10rem;
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2));
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        .fruit-pop {
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            80% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            border: 4px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        /* Hover zones for UI */
+        .hit-zone {
+            transition: all 0.2s ease;
+        }
+        .hit-zone.active {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.8);
+        }
+
+        #loading-overlay {
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen relative">
+
+    
+    <!-- Camera Video (Hidden, used as source for AI) -->
+    <video id="videoElement" class="hidden" autoplay playsinline></video>
+    
+    <!-- Canvas for drawing camera feed and hand tracking (Full screen background) -->
+    <canvas id="outputCanvas" class="absolute inset-0 w-full h-full object-cover mirrored z-0"></canvas>
+
+    <!-- Overlay for darkening camera slightly -->
+    <div class="absolute inset-0 bg-black/20 z-0 pointer-events-none"></div>
+
+    <!-- UI Layer -->
+    <div class="absolute inset-0 z-10 flex flex-col justify-between p-4 pointer-events-none">
+        
+        <!-- Header: Score and Status -->
+        <div class="flex justify-between items-start w-full max-w-6xl mx-auto mt-4">
+            <div class="glass-panel rounded-3xl px-6 py-3 flex items-center gap-3 pointer-events-auto">
+                <span class="text-4xl">🌟</span>
+                <div class="text-2xl font-bold text-gray-800">คะแนน: <span id="scoreDisplay" class="text-green-600 text-3xl">0</span></div>
+            </div>
+            
+            <button id="startButton" class="bg-blue-500 hover:bg-blue-600 text-white font-bold text-2xl py-4 px-8 rounded-full shadow-xl transition-transform hover:scale-105 pointer-events-auto border-4 border-white">
+                ▶️ เริ่มเล่นเกม
+            </button>
+        </div>
+
+        <!-- Center: Current Fruit -->
+        <div id="gameCenter" class="hidden flex-col items-center justify-center flex-grow pointer-events-none">
+            <div class="glass-panel rounded-[3rem] p-8 flex flex-col items-center justify-center min-w-[300px]">
+                <h2 class="text-2xl font-bold text-gray-500 mb-2">ผลไม้นี้คืออะไร?</h2>
+                <div id="fruitDisplay" class="fruit-emoji">🍎</div>
+                <div id="feedbackText" class="text-4xl font-extrabold mt-4 h-12 opacity-0 transition-opacity">ยอดเยี่ยม!</div>
+            </div>
+        </div>
+
+        <!-- Bottom/Sides: Options (Left and Right) -->
+        <div id="optionsContainer" class="hidden flex justify-between items-end w-full max-w-7xl mx-auto mb-10 pointer-events-none">
+            
+            <!-- Left Option -->
+            <div id="leftOptionUI" class="hit-zone glass-panel w-1/3 max-w-sm rounded-3xl p-6 text-center border-l-8 border-l-orange-500 relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-2 bg-orange-500"></div>
+                <p class="text-xl text-gray-500 font-semibold mb-2">แตะมือฝั่งซ้าย</p>
+                <p id="leftText" class="text-5xl font-black text-gray-800 break-words">Apple</p>
+                <div class="mt-4 text-orange-500 text-opacity-50 text-6xl font-black absolute -right-4 -bottom-4">L</div>
+            </div>
+
+            <!-- Right Option -->
+            <div id="rightOptionUI" class="hit-zone glass-panel w-1/3 max-w-sm rounded-3xl p-6 text-center border-r-8 border-r-purple-500 relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-full h-2 bg-purple-500"></div>
+                <p class="text-xl text-gray-500 font-semibold mb-2">แตะมือฝั่งขวา</p>
+                <p id="rightText" class="text-5xl font-black text-gray-800 break-words">Banana</p>
+                <div class="mt-4 text-purple-500 text-opacity-50 text-6xl font-black absolute -left-4 -bottom-4">R</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Loading Screen Overlay -->
+    <div id="loading-overlay" class="absolute inset-0 bg-white flex flex-col items-center justify-center hidden">
+        <div class="w-16 h-16 border-8 border-blue-200 border-t-blue-500 rounded-full animate-spin mb-4"></div>
+        <h2 class="text-3xl font-bold text-gray-700">กำลังโหลดระบบ AI กล้อง...</h2>
+        <p class="text-gray-500 mt-2 text-xl">กรุณาอนุญาตการใช้งานกล้อง</p>
+    </div>
+
+    <script>
+        // Game Vocabulary Data
+        const fruits = [
+            { name: "Apple", emoji: "🍎" },
+            { name: "Banana", emoji: "🍌" },
+            { name: "Orange", emoji: "🍊" },
+            { name: "Grape", emoji: "🍇" },
+            { name: "Strawberry", emoji: "🍓" },
+            { name: "Watermelon", emoji: "🍉" },
+            { name: "Mango", emoji: "🥭" },
+            { name: "Pineapple", emoji: "🍍" },
+            { name: "Cherry", emoji: "🍒" },
+            { name: "Peach", emoji: "🍑" },
+            { name: "Coconut", emoji: "🥥" },
+            { name: "Kiwi", emoji: "🥝" }
+        ];
+
+        // State Variables
+        let score = 0;
+        let isPlaying = false;
+        let currentQuestion = null;
+        let isProcessingAnswer = false;
+        
+        // DOM Elements
+        const videoElement = document.getElementById('videoElement');
+        const canvasElement = document.getElementById('outputCanvas');
+        const canvasCtx = canvasElement.getContext('2d');
+        
+        const startButton = document.getElementById('startButton');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const gameCenter = document.getElementById('gameCenter');
+        const optionsContainer = document.getElementById('optionsContainer');
+        const fruitDisplay = document.getElementById('fruitDisplay');
+        const leftText = document.getElementById('leftText');
+        const rightText = document.getElementById('rightText');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const feedbackText = document.getElementById('feedbackText');
+        const leftOptionUI = document.getElementById('leftOptionUI');
+        const rightOptionUI = document.getElementById('rightOptionUI');
+
+        // Audio synthesis for fun feedback
+        let synth, errorSynth;
+        
+        function initAudio() {
+            if(synth) return; // Already initialized
+            // Success sound (Bright, happy)
+            synth = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: "triangle" },
+                envelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 1 }
+            }).toDestination();
+            
+            // Error sound (Low, blunt)
+            errorSynth = new Tone.Synth({
+                oscillator: { type: "sawtooth" },
+                envelope: { attack: 0.05, decay: 0.2, sustain: 0, release: 0.5 }
+            }).toDestination();
+        }
+
+        function playSuccessSound() {
+            if(!synth) return;
+            Tone.start();
+            synth.triggerAttackRelease(["C5", "E5", "G5"], "8n");
+        }
+
+        function playErrorSound() {
+            if(!errorSynth) return;
+            Tone.start();
+            errorSynth.triggerAttackRelease("C3", "4n");
+        }
+
+
+        function startGame() {
+            initAudio(); // Required to start Tone.js after user gesture
+            startButton.style.display = 'none';
+            gameCenter.classList.remove('hidden');
+            gameCenter.classList.add('flex');
+            optionsContainer.classList.remove('hidden');
+            
+            score = 0;
+            updateScoreDisplay();
+            isPlaying = true;
+            nextQuestion();
+        }
+
+        function nextQuestion() {
+            isProcessingAnswer = false;
+            
+            // Reset UI
+            feedbackText.style.opacity = '0';
+            fruitDisplay.classList.remove('fruit-pop');
+            leftOptionUI.classList.remove('bg-green-100', 'bg-red-100', 'border-green-500', 'border-red-500');
+            rightOptionUI.classList.remove('bg-green-100', 'bg-red-100', 'border-green-500', 'border-red-500');
+            leftOptionUI.style.transform = 'scale(1)';
+            rightOptionUI.style.transform = 'scale(1)';
+
+            // Pick a random fruit
+            const targetFruit = fruits[Math.floor(Math.random() * fruits.length)];
+            
+            // Pick a wrong fruit
+            let wrongFruit;
+            do {
+                wrongFruit = fruits[Math.floor(Math.random() * fruits.length)];
+            } while (wrongFruit.name === targetFruit.name);
+
+            // Randomize position (Left or Right)
+            const isTargetLeft = Math.random() > 0.5;
+
+            currentQuestion = {
+                target: targetFruit,
+                leftOption: isTargetLeft ? targetFruit.name : wrongFruit.name,
+                rightOption: !isTargetLeft ? targetFruit.name : wrongFruit.name,
+                correctSide: isTargetLeft ? 'left' : 'right'
+            };
+
+            // Update DOM
+            // Force reflow to restart animation
+            void fruitDisplay.offsetWidth; 
+            fruitDisplay.innerText = targetFruit.emoji;
+            fruitDisplay.classList.add('fruit-pop');
+            
+            leftText.innerText = currentQuestion.leftOption;
+            rightText.innerText = currentQuestion.rightOption;
+        }
+
+        function handleAnswer(selectedSide) {
+            if (isProcessingAnswer || !isPlaying) return;
+            isProcessingAnswer = true;
+
+            const isCorrect = (selectedSide === currentQuestion.correctSide);
+            const selectedUI = selectedSide === 'left' ? leftOptionUI : rightOptionUI;
+
+            selectedUI.style.transform = 'scale(1.1)';
+
+            if (isCorrect) {
+                // Correct Answer
+                score += 10;
+                updateScoreDisplay();
+                playSuccessSound();
+                selectedUI.classList.add('bg-green-100', 'border-green-500');
+                showFeedback("ถูกต้อง! 🎉", "text-green-500");
+            } else {
+                // Wrong Answer
+                playErrorSound();
+                selectedUI.classList.add('bg-red-100', 'border-red-500');
+                
+                // Highlight the correct one too
+                const correctUI = currentQuestion.correctSide === 'left' ? leftOptionUI : rightOptionUI;
+                correctUI.classList.add('bg-green-100', 'border-green-500');
+                
+                showFeedback("ผิดจ้า! 😢", "text-red-500");
+            }
+
+            // Wait 2 seconds before next question
+            setTimeout(() => {
+                nextQuestion();
+            }, 2000);
+        }
+
+        function showFeedback(text, colorClass) {
+            feedbackText.innerText = text;
+            feedbackText.className = `text-4xl font-extrabold mt-4 h-12 transition-opacity ${colorClass}`;
+            feedbackText.style.opacity = '1';
+        }
+
+        function updateScoreDisplay() {
+            scoreDisplay.innerText = score;
+        }
+
+        function onResults(results) {
+            // Ensure canvas matches video dimensions for drawing
+            canvasElement.width = videoElement.videoWidth;
+            canvasElement.height = videoElement.videoHeight;
+            
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            
+            // Draw video feed on canvas
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+            // Define hit zones visually on the canvas (optional, but helps debug)
+            const zoneWidth = canvasElement.width * 0.3; // 30% of screen
+            
+            // Draw Landmarks if found
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                for (const landmarks of results.multiHandLandmarks) {
+                    drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#ffffff', lineWidth: 3});
+                    drawLandmarks(canvasCtx, landmarks, {color: '#3B82F6', lineWidth: 2, radius: 4});
+
+                    // Check interaction with game UI if playing
+                    if (isPlaying && !isProcessingAnswer) {
+                        // Use Index Finger Tip (Landmark 8) for pointing
+                        const indexFinger = landmarks[8];
+                        
+                        // X coordinate is normalized [0.0, 1.0].
+                        // Note: Our canvas CSS has transform: scaleX(-1) which mirrors the display.
+                        // The raw camera frame (results.image) is NOT mirrored.
+                        // So: 
+                        // Raw x = 1.0 (Right side of image) -> Appears on Left screen to user.
+                        // Raw x = 0.0 (Left side of image) -> Appears on Right screen to user.
+                        
+                        const rawX = indexFinger.x;
+                        
+                        // Add visual feedback to the HTML UI elements
+                        if (rawX > 0.75) {
+                            // Hand is on the raw-right (visual-left)
+                            leftOptionUI.classList.add('active');
+                            rightOptionUI.classList.remove('active');
+                            handleAnswer('left');
+                        } else if (rawX < 0.25) {
+                            // Hand is on the raw-left (visual-right)
+                            rightOptionUI.classList.add('active');
+                            leftOptionUI.classList.remove('active');
+                            handleAnswer('right');
+                        } else {
+                            // Hand in the middle
+                            leftOptionUI.classList.remove('active');
+                            rightOptionUI.classList.remove('active');
+                        }
+                    }
+                }
+            } else {
+                 if (isPlaying && !isProcessingAnswer) {
+                     leftOptionUI.classList.remove('active');
+                     rightOptionUI.classList.remove('active');
+                 }
+            }
+            canvasCtx.restore();
+        }
+
+        // Initialize MediaPipe Hands
+        const hands = new Hands({locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+        }});
+
+        hands.setOptions({
+            maxNumHands: 2,
+            modelComplexity: 1, // 0 for faster, 1 for accurate
+            minDetectionConfidence: 0.7,
+            minTrackingConfidence: 0.7
+        });
+
+        hands.onResults(onResults);
+
+        // Setup Camera
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await hands.send({image: videoElement});
+            },
+            width: 1280,
+            height: 720
+        });
+
+        startButton.addEventListener('click', () => {
+            loadingOverlay.classList.remove('hidden');
+            
+            // Request camera and start
+            camera.start().then(() => {
+                loadingOverlay.classList.add('hidden');
+                startGame();
+            }).catch(err => {
+                loadingOverlay.classList.add('hidden');
+                alert("ไม่สามารถเข้าถึงกล้องได้ กรุณาอนุญาตการใช้งานกล้องในเบราว์เซอร์ของคุณ");
+                console.error(err);
+            });
+        });
+
+        // Fix resize issues for canvas
+        window.addEventListener('resize', () => {
+            if(videoElement.videoWidth) {
+                canvasElement.width = videoElement.videoWidth;
+                canvasElement.height = videoElement.videoHeight;
+            }
+        });
+
+    </script>
+</body>
+</html>
