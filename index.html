@@ -143,6 +143,14 @@
         
         <!-- Bottom padding for balance -->
         <div class="h-10"></div>
+
+        <!-- Fullscreen Button -->
+        <button id="fullscreenBtn" class="absolute bottom-6 right-6 glass-panel rounded-full p-4 flex items-center justify-center hover:scale-110 transition-transform pointer-events-auto shadow-xl z-50 bg-white/80" title="เต็มจอ">
+            <svg id="fullscreenIcon" xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <!-- Expand Icon -->
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+            </svg>
+        </button>
     </div>
 
     <!-- Loading Screen Overlay -->
@@ -208,6 +216,9 @@
 
         const btnFruitsMode = document.getElementById('btnFruitsMode');
         const btnAnimalsMode = document.getElementById('btnAnimalsMode');
+
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const fullscreenIcon = document.getElementById('fullscreenIcon');
 
         // Audio synthesis for fun feedback
         let synth, errorSynth;
@@ -466,6 +477,34 @@
         // Event Listeners for Mode Selection
         btnFruitsMode.addEventListener('click', () => startCameraAndGame('fruits'));
         btnAnimalsMode.addEventListener('click', () => startCameraAndGame('animals'));
+
+        // Fullscreen Logic
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch((err) => {
+                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        fullscreenBtn.addEventListener('click', toggleFullScreen);
+
+        // Listen for fullscreen changes to update the button icon
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                // Compress Icon (Exit Fullscreen)
+                fullscreenIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />`;
+                fullscreenBtn.title = "ยุบหน้าจอ";
+            } else {
+                // Expand Icon (Enter Fullscreen)
+                fullscreenIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />`;
+                fullscreenBtn.title = "เต็มจอ";
+            }
+        });
 
         // Fix resize issues for canvas
         window.addEventListener('resize', () => {
